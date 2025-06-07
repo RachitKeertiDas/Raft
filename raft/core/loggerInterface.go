@@ -12,7 +12,7 @@ type LogMachineHandler interface {
 	InitLogger() (int, int)
 
 	// append a new entry to the log machine
-	// Takes in the term, and the string
+	// Takes in the term, supposed index and the string
 	// returns the index of the new entry
 	AppendLog(int, string) (int, error)
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/RachitKeertiDas/raft/core"
 	"github.com/RachitKeertiDas/raft/internal/config"
+	"github.com/RachitKeertiDas/raft/logMachine"
 )
 
 func main() {
@@ -18,10 +19,13 @@ func main() {
 	// Initialize Server with Configs.
 
 	// Initialize Logger
+	logMachine := new(logMachine.CsvLogger)
+	logMachine.InitConfig("FileLogs.csv")
 
 	// Initialize State Machine
 
-	// Initalze Server
+	// Initalize Server
 	// dummy code to keep the import, will change soon
+
 	core.Init()
 }
