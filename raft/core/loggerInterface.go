@@ -14,7 +14,7 @@ type LogMachineHandler interface {
 	// append a new entry to the log machine
 	// Takes in the term, supposed index and the string
 	// returns the index of the new entry
-	AppendLog(int, string) (int, error)
+	AppendLog(int, int, string) (int, error)
 
 	// Fetch the Latest Log entry present
 	// returns the term, index, and the entry itself
@@ -28,5 +28,5 @@ type LogMachineHandler interface {
 	// Delete all the Entries starting at a particular index
 	// Useful when the state machines has to overwrite entries
 	// beginning at a particular index.
-	DeleteEntriesFromIndex(int) int
+	DeleteEntriesFromIndex(int) (int, error)
 }

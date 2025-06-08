@@ -36,7 +36,7 @@ func (logger *CsvLogger) AppendLog(index int, term int, entry string) (int, erro
 	f := logger.openFileForAppend()
 	defer f.Close()
 
-	csvWriter := csv.Writer(f)
+	csvWriter := csv.NewWriter(f)
 
 	row := []string{string(term), string(index), entry}
 	err := csvWriter.Write(row)
