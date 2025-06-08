@@ -6,21 +6,28 @@ type Server struct {
 	votedFor   int
 	logMachine LogMachineHandler
 	rpcClient  RPCHandler
+	selfData   ServerConfig
+	nodes      []ServerConfig
+}
+
+type ServerConfig struct {
+	Id      int
+	Address string
 }
 
 type RPCHandler interface {
+	RequestVote(int, int)
 }
 
 const electionTimeout = 150
 const heartbeatTimeout = 5
 
-func Init(logMachine LogMachineHandler) Server {
+func Init(logMachine LogMachineHandler, localConfig ServerConfig, nodes []ServerConfig) Server {
 	// A server must initialize to a follower state.
 	// I think in case logger gets it back, it should increment the term
 	term, _ := logMachine.InitLogger()
-
 	var rpcClient RPCHandler
-	server := Server{"Follower", term, -1, logMachine, rpcClient}
+	server := Server{"Follower", term, -1, logMachine, rpcClient, localConfig, nodes}
 	return server
 }
 
@@ -55,7 +62,12 @@ func startElection(server *Server) {
 	// increment term
 	server.state = "Candidate"
 	server.term += 1
-
-	// server.rpcClient.RequestVote()
+	for _, member := range server.nodes {
+		if member.Id == server.selfData.Id {
+			// don't send an RPC call to yourself
+			continue
+		}
+		server.rpcClient.RequestVote(member.Id, server.term)
+	}
 
 }

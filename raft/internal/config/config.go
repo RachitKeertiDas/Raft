@@ -3,17 +3,20 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/RachitKeertiDas/raft/core"
 )
 
 type GlobalConfig struct {
 	numServers int
 	RPCMethod  string
-	serverInfo map[string]int
+	ServerInfo []core.ServerConfig
 }
 
 type LocalConfig struct {
 	LogHandler          string
 	StateMachineHandler string
+	ServerInfo          core.ServerConfig
 }
 
 func Init() (GlobalConfig, LocalConfig) {
@@ -25,9 +28,12 @@ func Init() (GlobalConfig, LocalConfig) {
 
 	// for now just init globalConfigs locally
 	// we will see about reading it from JSON later
-	tempMap := make(map[string]int)
-	clusterConfigs := GlobalConfig{5, "HTTPRPCHandler", tempMap}
-	localConfigs := LocalConfig{"TextHandler", "NoActionHandler"}
+	localConfig := core.ServerConfig{3, "http://localhost:9073/"}
+	clusterNodes := [5]core.ServerConfig{{1, "http://localhost:9071/"}, {2, "http://localhost:9072/"}, {3, "http://localhost:9073/"}, {4, "http://localhost:9074/"}, {5, "http://localhost:9075/"}}
+
+	clusterConfigs := GlobalConfig{5, "HTTPRPCHandler", clusterNodes[:]}
+
+	localConfigs := LocalConfig{"csvLogger", "NoActionHandler", localConfig}
 	fmt.Println(clusterConfigs)
 
 	return clusterConfigs, localConfigs
