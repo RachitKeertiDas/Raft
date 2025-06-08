@@ -1,0 +1,26 @@
+{
+	"RPCMethod":"HTTP",
+	"numServers":5,
+	"serverInfo":[
+		{
+			"id":1,
+			"address":"http://localhost:9071"
+		},
+		{
+			"id":2,
+			"address":"http://localhost:9072"
+		},
+		{
+			"id":3,
+			"address":"http://localhost:9073"
+		},
+		{
+			"id":4,
+			"address":"http://localhost:9074"
+		},
+		{
+			"id":5,
+			"address":"http://localhost:9075"
+		}
+	]
+}
