@@ -1,19 +1,26 @@
 package core
 
 type Server struct {
-	state    string
-	term     int
-	votedFor int
+	state      string
+	term       int
+	votedFor   int
+	logMachine LogMachineHandler
+	rpcClient  RPCHandler
+}
+
+type RPCHandler interface {
 }
 
 const electionTimeout = 150
 const heartbeatTimeout = 5
 
-func Init() Server {
+func Init(logMachine LogMachineHandler) Server {
 	// A server must initialize to a follower state.
-	// TODO: For now, initialize term to 0
 	// I think in case logger gets it back, it should increment the term
-	server := Server{"Follower", 0, -1}
+	term, _ := logMachine.InitLogger()
+
+	var rpcClient RPCHandler
+	server := Server{"Follower", term, -1, logMachine, rpcClient}
 	return server
 }
 
@@ -49,7 +56,6 @@ func startElection(server *Server) {
 	server.state = "Candidate"
 	server.term += 1
 
-	// server.RPCHandler.RequestVote()
+	// server.rpcClient.RequestVote()
 
-	// RPCServer.
 }
