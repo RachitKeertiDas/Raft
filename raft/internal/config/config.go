@@ -28,7 +28,7 @@ func Init() (GlobalConfig, LocalConfig) {
 
 	// for now just init globalConfigs locally
 	// we will see about reading it from JSON later
-	localConfig := core.ServerConfig{3, "http://localhost:9073/"}
+	localConfig := core.ServerConfig{3, "localhost:9073"}
 	clusterNodes := [5]core.ServerConfig{{1, "http://localhost:9071/"}, {2, "http://localhost:9072/"}, {3, "http://localhost:9073/"}, {4, "http://localhost:9074/"}, {5, "http://localhost:9075/"}}
 
 	clusterConfigs := GlobalConfig{5, "HTTPRPCHandler", clusterNodes[:]}

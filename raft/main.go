@@ -27,5 +27,6 @@ func main() {
 	// Initalize Server
 	// dummy code to keep the import, will change soon
 
-	core.Init(logMachine, localConfigs.ServerInfo, serverConfigs.ServerInfo)
+	server := core.Init(logMachine, localConfigs.ServerInfo, serverConfigs.ServerInfo)
+	server.Run()
 }
