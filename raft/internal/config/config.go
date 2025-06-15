@@ -3,6 +3,8 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/RachitKeertiDas/raft/core"
 )
@@ -21,20 +23,37 @@ type LocalConfig struct {
 
 func Init() (GlobalConfig, LocalConfig) {
 
-	fmt.Println("Initializing Config Reader")
-	a, _ := json.Marshal("1")
-	fmt.Println(a)
-	fmt.Println("reading configs from config file.")
+	fmt.Println("Initializing Config Reader.")
+	fileName := "localConfig.json"
+	fmt.Printf("Reading configs from config file %s...", fileName)
+
+	// TODO: Replace with common util function
+	f, err := os.Open(fileName)
+	if err != nil {
+		fmt.Println("Error opening File: %s", err)
+		return GlobalConfig{}, LocalConfig{}
+	}
+	defer f.Close()
+
+	fileBytes, err := io.ReadAll(f)
+	if err != nil {
+		fmt.Println("Error Converting File to bytes: %s", err)
+		return GlobalConfig{}, LocalConfig{}
+	}
+	fmt.Printf("File Data: %s\n", string(fileBytes))
+
+	var localConfig LocalConfig
+	json.Unmarshal(fileBytes, &localConfig)
+	fmt.Println("Printing local Configs:", localConfig)
 
 	// for now just init globalConfigs locally
 	// we will see about reading it from JSON later
-	localConfig := core.ServerConfig{3, "localhost:9073"}
 	clusterNodes := [5]core.ServerConfig{{1, "http://localhost:9071/"}, {2, "http://localhost:9072/"}, {3, "http://localhost:9073/"}, {4, "http://localhost:9074/"}, {5, "http://localhost:9075/"}}
 
 	clusterConfigs := GlobalConfig{5, "HTTPRPCHandler", clusterNodes[:]}
 
-	localConfigs := LocalConfig{"csvLogger", "NoActionHandler", localConfig}
+	fmt.Println(localConfig)
 	fmt.Println(clusterConfigs)
 
-	return clusterConfigs, localConfigs
+	return clusterConfigs, localConfig
 }

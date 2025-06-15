@@ -1,7 +1,8 @@
 {
-	"serverId":3,
-	"address":"http://localhost:/9073",
-	"LogMachineHandler":"csvLogger",
-	"StateMachineHandler":"noActionMachine",
-	"RPCMethod":"HTTP"
+	"ServerInfo":{
+		"Address":"localhost:9073",
+		"Id":3
+	},
+	"LogHandler":"csvLogger",
+	"StateMachineHandler":"NoActionHandler"
 }
