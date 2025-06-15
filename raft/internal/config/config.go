@@ -40,7 +40,6 @@ func Init() (GlobalConfig, LocalConfig) {
 		fmt.Println("Error Converting File to bytes: %s", err)
 		return GlobalConfig{}, LocalConfig{}
 	}
-	fmt.Printf("File Data: %s\n", string(fileBytes))
 
 	var localConfig LocalConfig
 	json.Unmarshal(fileBytes, &localConfig)
@@ -52,8 +51,7 @@ func Init() (GlobalConfig, LocalConfig) {
 
 	clusterConfigs := GlobalConfig{5, "HTTPRPCHandler", clusterNodes[:]}
 
-	fmt.Println(localConfig)
-	fmt.Println(clusterConfigs)
+	fmt.Println("GlobalConfigs:", clusterConfigs)
 
 	return clusterConfigs, localConfig
 }
