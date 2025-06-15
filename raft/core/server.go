@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -27,7 +28,16 @@ type ServerConfig struct {
 }
 
 type RPCHandler interface {
-	RequestVote(int, int)
+	ServeHTTP(w http.ResponseWriter, r *http.Request)
+}
+
+type customHTTPHandler struct {
+	server       *Server
+	customRouter func(w http.ResponseWriter, req *http.Request, server *Server)
+}
+
+func (httpHandler *customHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	httpHandler.customRouter(w, r, httpHandler.server)
 }
 
 const electionTimeout = 150
@@ -112,6 +122,7 @@ func startElection(server *Server) {
 			// close the channel, we won't be getting anything
 			continue
 		}
+		time.Sleep(1 * time.Second)
 		var resp int = -1
 		if server.state != "Candidate" {
 			fmt.Println("Election is finished")
@@ -142,7 +153,8 @@ func startElection(server *Server) {
 
 func (server *Server) listenforRequests() {
 	fmt.Printf("Listening for HTTP Requests @ %s \n", server.selfData.Address)
-	http.HandleFunc("/voteRequest", requestVoteHandler)
+	routeHandler := customHTTPHandler{server: server, customRouter: requestVoteHandler}
+	http.Handle("/voteRequest", &routeHandler)
 	log.Fatal(http.ListenAndServe(server.selfData.Address, nil))
 }
 
@@ -153,7 +165,7 @@ func (server *Server) requestVote(address string, term int, timeout int) int {
 		Timeout: 5 * time.Second,
 	}
 
-	url := address + "/voteRequest"
+	url := address + "voteRequest"
 
 	body := make(map[string]string)
 	body["candidateTerm"] = strconv.Itoa(term)
@@ -165,7 +177,6 @@ func (server *Server) requestVote(address string, term int, timeout int) int {
 	}
 	fmt.Println(string(jsonBytes))
 	bodyReader := bytes.NewReader(jsonBytes)
-
 	resp, err := client.Post(url, "application/json", bodyReader)
 	if err != nil {
 		fmt.Printf("Unexpected Error:%s \n", err)
@@ -178,11 +189,24 @@ func (server *Server) requestVote(address string, term int, timeout int) int {
 		return -1
 	}
 	fmt.Println("Decision arrives")
+
 	return 1
 }
 
-func requestVoteHandler(w http.ResponseWriter, req *http.Request) {
+func requestVoteHandler(w http.ResponseWriter, req *http.Request, server *Server) {
+	fmt.Println("Server Term @ host:", server.term, req.Header, req.Method)
 
+	requestBody := make(map[string]string)
+	bytes, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		fmt.Print("Unexpected error occured: %s", err)
+	}
+	fmt.Println("Raw request body", string(bytes))
+	json.Unmarshal(bytes, &requestBody)
+	fmt.Println("Decoded RequestBody: ", requestBody)
+	if val, ok := requestBody["candidateTerm"]; ok {
+		fmt.Print("Candidate Term", val)
+	}
 	decision := 1
 	fmt.Print(decision)
 	responseBody := make(map[string]string)
