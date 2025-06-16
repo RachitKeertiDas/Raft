@@ -212,6 +212,8 @@ func requestVoteHandler(w http.ResponseWriter, req *http.Request, server *Server
 	responseBody := make(map[string]string)
 
 	responseBody["decision"] = strconv.Itoa(decision)
+	responseBody["serverTerm"] = strconv.Itoa(server.term)
+
 	jsonBytes, _ := json.Marshal(responseBody)
 
 	fmt.Fprintf(w, "%s", jsonBytes)
