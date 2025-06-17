@@ -101,6 +101,7 @@ func (server *Server) Run() {
 func startElection(server *Server) {
 	// increment term
 	server.term += 1
+	server.votedFor = server.selfData.Id
 
 	// TODO: Randomize ephemeralTimeout
 	ephemeralTimeout := electionTimeout
@@ -240,11 +241,19 @@ func requestVoteHandler(w http.ResponseWriter, req *http.Request, server *Server
 		fmt.Println("Candidate Term", val)
 	}
 	candidateTerm := requestBody["candidateTerm"]
+	candidateId, _ := strconv.Atoi(requestBody["candidateId"])
 	candidateTermInt, _ := strconv.Atoi(candidateTerm)
 	if candidateTermInt < server.term {
 		// reject since the candidate is behind
 		fmt.Printf("[VoteHandler]Rejecting Decision since %d < %d", candidateTerm, server.term)
 		decision = 0
+	} else if candidateTermInt == server.term {
+		if server.votedFor != 1 && server.votedFor != candidateId {
+			decision = 0
+		}
+	} else {
+		server.votedFor = candidateId
+		server.term = candidateTermInt
 	}
 
 	fmt.Println(decision)
