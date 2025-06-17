@@ -251,9 +251,6 @@ func requestVoteHandler(w http.ResponseWriter, req *http.Request, server *Server
 		if server.votedFor != 1 && server.votedFor != candidateId {
 			decision = 0
 		}
-	} else {
-		server.votedFor = candidateId
-		server.term = candidateTermInt
 	}
 
 	fmt.Println(decision)
