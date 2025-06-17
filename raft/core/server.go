@@ -40,7 +40,7 @@ func (httpHandler *customHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 	httpHandler.customRouter(w, r, httpHandler.server)
 }
 
-const electionTimeout = 10
+const electionTimeout = 5
 const heartbeatTimeout = 5
 
 func Init(logMachine LogMachineHandler, localConfig ServerConfig, nodes []ServerConfig) Server {
@@ -127,6 +127,7 @@ func startElection(server *Server) {
 
 	for time.Now().Sub(timeStart) < ephemeralDuration {
 
+		time.Sleep(1 * time.Second)
 		fmt.Println("New Loooop\n\n")
 		for idx, member := range server.nodes {
 			if member.Id == server.selfData.Id {
@@ -134,7 +135,6 @@ func startElection(server *Server) {
 				// close the channel, we won't be getting anything
 				continue
 			}
-			time.Sleep(1 * time.Second)
 			var resp int = -1
 			if server.state != "Candidate" {
 				fmt.Println("Election is finished")
