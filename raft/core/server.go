@@ -202,7 +202,7 @@ func (server *Server) requestVote(address string, term int, timeout int) int {
 		return -1
 	}
 	respBody, err := io.ReadAll(resp.Body)
-	fmt.Println(string(respBody))
+	fmt.Println("Decision from server ", string(respBody))
 	if err != nil {
 		// the call didn't succeed. Return -1 so that it will be retried by the caller.
 		return -1
@@ -213,21 +213,31 @@ func (server *Server) requestVote(address string, term int, timeout int) int {
 }
 
 func requestVoteHandler(w http.ResponseWriter, req *http.Request, server *Server) {
-	fmt.Println("Server Term @ host:", server.term, req.Header, req.Method)
+
+	// fmt.Println("Server Term @ host:", server.term, req.Header, req.Method)
+	fmt.Println("[VoteHandler]:Server Term @ host:", server.term)
 
 	requestBody := make(map[string]string)
 	bytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		fmt.Print("Unexpected error occured: %s", err)
 	}
-	fmt.Println("Raw request body", string(bytes))
 	json.Unmarshal(bytes, &requestBody)
-	fmt.Println("Decoded RequestBody: ", requestBody)
-	if val, ok := requestBody["candidateTerm"]; ok {
-		fmt.Print("Candidate Term", val)
-	}
 	decision := 1
-	fmt.Print(decision)
+
+	fmt.Println("[VoteHandler]Decoded RequestBody: ", requestBody)
+	if val, ok := requestBody["candidateTerm"]; ok {
+		fmt.Println("Candidate Term", val)
+	}
+	candidateTerm := requestBody["candidateTerm"]
+	candidateTermInt, _ := strconv.Atoi(candidateTerm)
+	if candidateTermInt < server.term {
+		// reject since the candidate is behind
+		fmt.Printf("[VoteHandler]Rejecting Decision since %d < %d", candidateTerm, server.term)
+		decision = 0
+	}
+
+	fmt.Println(decision)
 	responseBody := make(map[string]string)
 
 	responseBody["decision"] = strconv.Itoa(decision)
