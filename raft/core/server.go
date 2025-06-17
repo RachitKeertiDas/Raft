@@ -83,6 +83,11 @@ func (server *Server) Run() {
 		if server.state == "Candidate" {
 			// To start an election, increment term
 			startElection(server)
+			// If election would have succeeded, state will be leader
+			// if election would have timed out due to a split vote, state wold still be candidate
+			// if election would have failed (someone else became leader), state will be follower
+			// just set timeout to 0, as timeout only matters if state is follower.
+			timeout = 0
 		}
 
 		if server.state == "Leader" {
@@ -137,6 +142,7 @@ func startElection(server *Server) {
 
 			if responses[idx] == -1 && server.state == "Candidate" {
 				resp = server.requestVote(member.Address, server.term, ephemeralTimeout)
+				//	fmt.Println("Recieved Response", resp)
 			}
 			responses[idx] = resp
 
@@ -144,14 +150,14 @@ func startElection(server *Server) {
 			accepts := 0
 			for _, vote := range responses {
 				if vote == 1 {
-					accepts += vote
+					accepts += 1
 				}
 			}
 
 			rejects := 0
 			for _, vote := range responses {
 				if vote == 0 {
-					rejects += vote
+					rejects += 1
 				}
 			}
 
