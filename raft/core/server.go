@@ -40,7 +40,7 @@ func (httpHandler *customHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 	httpHandler.customRouter(w, r, httpHandler.server)
 }
 
-const electionTimeout = 150
+const electionTimeout = 10
 const heartbeatTimeout = 5
 
 func Init(logMachine LogMachineHandler, localConfig ServerConfig, nodes []ServerConfig) Server {
@@ -99,6 +99,7 @@ func startElection(server *Server) {
 
 	// TODO: Randomize ephemeralTimeout
 	ephemeralTimeout := electionTimeout
+	ephemeralDuration := time.Duration(ephemeralTimeout) * time.Second
 	fmt.Printf("Election timeout for Term %d by server %d is: %d\n", server.term, server.selfData.Id, ephemeralTimeout)
 
 	// channels := make([]chan int, 5)
@@ -108,6 +109,8 @@ func startElection(server *Server) {
 	// for now let's consider sequential calss
 	// will parallelize later
 	numServers := len(server.nodes)
+	timeStart := time.Now()
+	fmt.Println("ELection started at timeStart", timeStart)
 
 	responses := make([]int, numServers)
 	// 0 is unknown
@@ -116,39 +119,54 @@ func startElection(server *Server) {
 	}
 	responses[server.selfData.Id-1] = 1 // vote for self
 
-	for idx, member := range server.nodes {
-		if member.Id == server.selfData.Id {
-			// don't send an RPC call to yourself
-			// close the channel, we won't be getting anything
-			continue
-		}
-		time.Sleep(1 * time.Second)
-		var resp int = -1
-		if server.state != "Candidate" {
-			fmt.Println("Election is finished")
-			break
-		}
+	for time.Now().Sub(timeStart) < ephemeralDuration {
 
-		if responses[idx] == -1 && server.state == "Candidate" {
-			resp = server.requestVote(member.Address, server.term, ephemeralTimeout)
-		}
-		responses[idx] = resp
+		fmt.Println("New Loooop\n\n")
+		for idx, member := range server.nodes {
+			if member.Id == server.selfData.Id {
+				// don't send an RPC call to yourself
+				// close the channel, we won't be getting anything
+				continue
+			}
+			time.Sleep(1 * time.Second)
+			var resp int = -1
+			if server.state != "Candidate" {
+				fmt.Println("Election is finished")
+				break
+			}
 
-		// TODO: Refine and quit if responses not in favour
-		sum := 0
-		for _, vote := range responses {
-			if vote >= 0 {
-				sum += vote
+			if responses[idx] == -1 && server.state == "Candidate" {
+				resp = server.requestVote(member.Address, server.term, ephemeralTimeout)
+			}
+			responses[idx] = resp
+
+			// TODO: Refine and quit if responses not in favour
+			accepts := 0
+			for _, vote := range responses {
+				if vote == 1 {
+					accepts += vote
+				}
+			}
+
+			rejects := 0
+			for _, vote := range responses {
+				if vote == 0 {
+					rejects += vote
+				}
+			}
+
+			if accepts*2 > numServers {
+				fmt.Println("Majority Achieved")
+				server.state = "Leader"
+				return
+			} else if rejects*2 > numServers {
+				fmt.Println("Rejected election quest. Convert back to follower.")
+				server.state = "Follower"
+				return
 			}
 		}
 
-		if sum*2 > numServers {
-			fmt.Println("Majority Achieved")
-			server.state = "Leader"
-			return
-		}
 	}
-
 }
 
 func (server *Server) listenforRequests() {
@@ -177,6 +195,7 @@ func (server *Server) requestVote(address string, term int, timeout int) int {
 	}
 	fmt.Println(string(jsonBytes))
 	bodyReader := bytes.NewReader(jsonBytes)
+	fmt.Println("Making a call to", url)
 	resp, err := client.Post(url, "application/json", bodyReader)
 	if err != nil {
 		fmt.Printf("Unexpected Error:%s \n", err)
