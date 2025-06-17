@@ -201,15 +201,19 @@ func (server *Server) requestVote(address string, term int, timeout int) int {
 		fmt.Printf("Unexpected Error:%s \n", err)
 		return -1
 	}
-	respBody, err := io.ReadAll(resp.Body)
-	fmt.Println("Decision from server ", string(respBody))
+	respBody := make(map[string]string)
+	respBytes, err := io.ReadAll(resp.Body)
+	fmt.Println("Decision from server ", string(respBytes))
 	if err != nil {
 		// the call didn't succeed. Return -1 so that it will be retried by the caller.
 		return -1
 	}
-	fmt.Println("Decision arrives")
-
-	return 1
+	json.Unmarshal(respBytes, &respBody)
+	decision, err := strconv.Atoi(respBody["decision"])
+	if err != nil {
+		fmt.Println("Unexpected error ", err)
+	}
+	return decision
 }
 
 func requestVoteHandler(w http.ResponseWriter, req *http.Request, server *Server) {
