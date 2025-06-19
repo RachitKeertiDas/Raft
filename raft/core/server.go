@@ -13,13 +13,14 @@ import (
 )
 
 type Server struct {
-	state      string
-	term       int
-	votedFor   int
-	logMachine LogMachineHandler
-	rpcClient  RPCHandler
-	selfData   ServerConfig
-	nodes      []ServerConfig
+	state         string
+	term          int
+	votedFor      int
+	logMachine    LogMachineHandler
+	rpcClient     RPCHandler
+	selfData      ServerConfig
+	nodes         []ServerConfig
+	lastHeartbeat time.Time
 }
 
 type ServerConfig struct {
@@ -41,14 +42,14 @@ func (httpHandler *customHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 }
 
 const electionTimeout = 5
-const heartbeatTimeout = 5
+const heartbeatTimeout = time.Duration(5 * time.Second)
 
 func Init(logMachine LogMachineHandler, localConfig ServerConfig, nodes []ServerConfig) Server {
 	// A server must initialize to a follower state.
 	// I think in case logger gets it back, it should increment the term
 	term, _ := logMachine.InitLogger()
 	var rpcClient RPCHandler
-	server := Server{"Follower", term, -1, logMachine, rpcClient, localConfig, nodes}
+	server := Server{"Follower", term, -1, logMachine, rpcClient, localConfig, nodes, time.Now()}
 	fmt.Print(server)
 	return server
 }
@@ -64,18 +65,19 @@ func (server *Server) Run() {
 	go server.listenforRequests()
 
 	// meanwhile timeout in the background in case we don't recieve anything
-	timeout := 0
+	// timeout := 0
 	for {
+		currentTime := time.Now()
 		if server.state == "Follower" {
-			if timeout <= heartbeatTimeout {
+			if currentTime.Sub(server.lastHeartbeat) <= heartbeatTimeout {
 				// Keep Listening to queries and waiting for timeout
 				// Listening to queries will be done by the http handler.
-				fmt.Printf("Time since Last Response :%d \n", timeout)
+				fmt.Printf("Time since Last Response :%s \n", currentTime.Sub(server.lastHeartbeat))
 				time.Sleep(1 * time.Second)
-				timeout += 1
+				//timeout += 1
 
 			} else {
-				fmt.Printf("No Heartbeat Recieved since %d. Time to convert to candidate.\n", timeout)
+				fmt.Printf("No Heartbeat Recieved since %s. Time to convert to candidate.\n", currentTime.Sub(server.lastHeartbeat))
 				server.state = "Candidate"
 			}
 		}
@@ -87,7 +89,7 @@ func (server *Server) Run() {
 			// if election would have timed out due to a split vote, state wold still be candidate
 			// if election would have failed (someone else became leader), state will be follower
 			// just set timeout to 0, as timeout only matters if state is follower.
-			timeout = 0
+			server.lastHeartbeat = time.Now()
 		}
 
 		if server.state == "Leader" {
@@ -178,8 +180,8 @@ func startElection(server *Server) {
 
 func (server *Server) listenforRequests() {
 	fmt.Printf("Listening for HTTP Requests @ %s \n", server.selfData.Address)
-	routeHandler := customHTTPHandler{server: server, customRouter: requestVoteHandler}
-	http.Handle("/voteRequest", &routeHandler)
+	voteRouteHandler := customHTTPHandler{server: server, customRouter: requestVoteHandler}
+	http.Handle("/voteRequest", &voteRouteHandler)
 	log.Fatal(http.ListenAndServe(server.selfData.Address, nil))
 }
 
