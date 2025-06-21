@@ -319,7 +319,15 @@ func requestVoteHandler(w http.ResponseWriter, req *http.Request, server *Server
 		// hence reject the vote.
 		if server.votedFor != -1 && server.votedFor != candidateId {
 			decision = 0
+		} else {
+			fmt.Println("We should never be here. Accepting vote anyway")
 		}
+	}
+
+	if decision == 1 {
+		server.votedFor = candidateId
+		server.term = candidateTermInt
+		server.lastHeartbeat = time.Now()
 	}
 
 	fmt.Println(decision)
