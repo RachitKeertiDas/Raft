@@ -309,12 +309,15 @@ func requestVoteHandler(w http.ResponseWriter, req *http.Request, server *Server
 	candidateTerm := requestBody["candidateTerm"]
 	candidateId, _ := strconv.Atoi(requestBody["candidateId"])
 	candidateTermInt, _ := strconv.Atoi(candidateTerm)
+
 	if candidateTermInt < server.term {
 		// reject since the candidate is behind
 		fmt.Printf("[VoteHandler]Rejecting Decision since %d < %d", candidateTerm, server.term)
 		decision = 0
 	} else if candidateTermInt == server.term {
-		if server.votedFor != 1 && server.votedFor != candidateId {
+		// server has voted but not for the given candidate
+		// hence reject the vote.
+		if server.votedFor != -1 && server.votedFor != candidateId {
 			decision = 0
 		}
 	}
