@@ -41,8 +41,8 @@ func (httpHandler *customHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 	httpHandler.customRouter(w, r, httpHandler.server)
 }
 
-const electionTimeout = 5
-const heartbeatTimeout = time.Duration(5 * time.Second)
+const electionTimeout = 10
+const heartbeatTimeout = time.Duration(10 * time.Second)
 
 func Init(logMachine LogMachineHandler, localConfig ServerConfig, nodes []ServerConfig) Server {
 	// A server must initialize to a follower state.
@@ -95,9 +95,31 @@ func (server *Server) Run() {
 		if server.state == "Leader" {
 			// logWrite Requests will be handled, replicated by the handler.
 			// the handler will change the state accordingly
+			handleLeaderState(server)
 		}
 
 	}
+}
+
+func handleLeaderState(server *Server) {
+
+	// InitializeLeaderState()
+
+	// send HeartBeats for now.
+	// get term from servers. if some one rejects
+	// with a higher term - we should convert to a follower.
+
+	for _, member := range server.nodes {
+		if member.Id == server.selfData.Id {
+			// don't send an RPC call to yourself
+			// close the channel, we won't be getting anything
+			server.lastHeartbeat = time.Now()
+			continue
+		}
+		server.sendHeartbeat(member.Id, member.Address)
+	}
+	time.Sleep(1 * time.Second)
+	// also need to send log entries - the below function will be changed
 }
 
 func startElection(server *Server) {
@@ -181,8 +203,29 @@ func startElection(server *Server) {
 func (server *Server) listenforRequests() {
 	fmt.Printf("Listening for HTTP Requests @ %s \n", server.selfData.Address)
 	voteRouteHandler := customHTTPHandler{server: server, customRouter: requestVoteHandler}
+	heartbeatHandler := customHTTPHandler{server: server, customRouter: heartbeatHandler}
 	http.Handle("/voteRequest", &voteRouteHandler)
+	http.Handle("/heartbeat", &heartbeatHandler)
 	log.Fatal(http.ListenAndServe(server.selfData.Address, nil))
+}
+
+func (server *Server) sendHeartbeat(id int, address string) {
+
+	body := make(map[string]string)
+	body["candidateTerm"] = strconv.Itoa(server.term)
+	body["candidateId"] = strconv.Itoa(server.selfData.Id)
+	url := address + "heartbeat"
+
+	jsonBytes, err := json.Marshal(body)
+	if err != nil {
+		fmt.Printf("Unexpected Error:%s \n", err)
+	}
+
+	bodyReader := bytes.NewReader(jsonBytes)
+	_, err = http.Post(url, "application/json", bodyReader)
+	if err != nil {
+		fmt.Println("Unexpected error occured", err, bodyReader)
+	}
 }
 
 func (server *Server) requestVote(address string, term int, timeout int) int {
@@ -223,6 +266,27 @@ func (server *Server) requestVote(address string, term int, timeout int) int {
 		fmt.Println("Unexpected error ", err)
 	}
 	return decision
+}
+
+// TODO: rename to AppendEntries once logging functionality is integrated.
+func heartbeatHandler(w http.ResponseWriter, req *http.Request, server *Server) {
+	fmt.Println("Recieved Heartbeat request.")
+
+	// in case everything is sucessful and server is follower.
+	requestBody := make(map[string]string)
+	bytes, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		fmt.Print("Unexpected error occured: %s", err)
+	}
+	json.Unmarshal(bytes, &requestBody)
+
+	fmt.Println("[Heartbeat] Decoded RequestBody: ", requestBody)
+	// recieving request body - see above
+
+	if server.state == "Follower" {
+		server.lastHeartbeat = time.Now()
+
+	}
 }
 
 func requestVoteHandler(w http.ResponseWriter, req *http.Request, server *Server) {
