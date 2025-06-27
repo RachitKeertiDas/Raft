@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/RachitKeertiDas/raft/core"
 	"github.com/RachitKeertiDas/raft/internal/config"
@@ -10,7 +11,7 @@ import (
 
 func main() {
 
-	fmt.Println("Hello. Initializing Raft Server")
+	log.Println("Hello. Initializing Raft Server")
 
 	//  Load configs
 	serverConfigs, localConfigs := config.Init()
