@@ -297,14 +297,14 @@ func requestVoteHandler(w http.ResponseWriter, req *http.Request, server *Server
 	requestBody := make(map[string]string)
 	bytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		fmt.Print("Unexpected error occured: %s", err)
+		fmt.Print("[VoteHandler]::Unexpected error occured: %s", err)
 	}
 	json.Unmarshal(bytes, &requestBody)
 	decision := 1
 
-	fmt.Println("[VoteHandler]Decoded RequestBody: ", requestBody)
+	fmt.Println("[VoteHandler]::Decoded RequestBody: ", requestBody)
 	if val, ok := requestBody["candidateTerm"]; ok {
-		fmt.Println("Candidate Term", val)
+		log.Println("[VoteHandler]::Candidate Term", val)
 	}
 	candidateTerm := requestBody["candidateTerm"]
 	candidateId, _ := strconv.Atoi(requestBody["candidateId"])
@@ -312,7 +312,7 @@ func requestVoteHandler(w http.ResponseWriter, req *http.Request, server *Server
 
 	if candidateTermInt < server.term {
 		// reject since the candidate is behind
-		fmt.Printf("[VoteHandler]Rejecting Decision since %d < %d", candidateTerm, server.term)
+		log.Printf("[VoteHandler]::Rejecting Decision since %d < %d", candidateTerm, server.term)
 		decision = 0
 	} else if candidateTermInt == server.term {
 		// server has voted but not for the given candidate
@@ -320,7 +320,7 @@ func requestVoteHandler(w http.ResponseWriter, req *http.Request, server *Server
 		if server.votedFor != -1 && server.votedFor != candidateId {
 			decision = 0
 		} else {
-			fmt.Println("We should never be here. Accepting vote anyway")
+			log.Println("[VoteHandler]::We should never be here unless at startup. Accepting vote anyway")
 		}
 	}
 
@@ -330,7 +330,7 @@ func requestVoteHandler(w http.ResponseWriter, req *http.Request, server *Server
 		server.lastHeartbeat = time.Now()
 	}
 
-	fmt.Println(decision)
+	log.Println("[VoteHandler]::Sending Decision", decision)
 	responseBody := make(map[string]string)
 
 	responseBody["decision"] = strconv.Itoa(decision)
